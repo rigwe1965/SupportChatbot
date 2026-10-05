@@ -60,8 +60,8 @@ export default async function TicketsPage({ searchParams }: { searchParams: { st
                   </span>
                   <span className="font-medium">#{t.id.slice(-6)}</span>
                   <span className="text-sm text-muted">{REASON_LABEL[t.reason]}</span>
-                  {!t.slackPostedAt && t.status === "OPEN" && (
-                    <span className="text-xs text-muted">· Slack not sent</span>
+                  {!t.slackPostedAt && !t.emailSentAt && t.status === "OPEN" && (
+                    <span className="text-xs text-muted">· Team not notified</span>
                   )}
                   <span className="ml-auto text-xs text-muted">{t.createdAt.toLocaleString()}</span>
                 </div>

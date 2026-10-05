@@ -1,6 +1,7 @@
 import { Prisma, type EscalationReason } from "@prisma/client";
 import { db } from "@/lib/db";
 import { postTicketToSlack } from "@/lib/slack";
+import { sendTicketEmail } from "@/lib/ticket-email";
 
 const envNumber = (v: string | undefined, fallback: number) => {
   const n = Number(v);
@@ -84,8 +85,9 @@ export async function escalate({ conversationId, user, reason }: EscalateInput) 
     throw err;
   }
 
-  // The ticket is already saved; a Slack outage must not fail the escalation.
-  const posted = await postTicketToSlack({
+  // The ticket is already saved; a Slack or email outage must not fail the escalation.
+  // Both senders swallow their own errors and report success as a boolean.
+  const payload = {
     id: ticket.id,
     reason,
     userName: ticket.userName,
@@ -93,9 +95,14 @@ export async function escalate({ conversationId, user, reason }: EscalateInput) 
     question,
     lastAnswer,
     transcript,
-  });
-  if (posted) {
-    await db.ticket.update({ where: { id: ticket.id }, data: { slackPostedAt: new Date() } });
+  };
+  const [slackOk, emailOk] = await Promise.all([postTicketToSlack(payload), sendTicketEmail(payload)]);
+  if (slackOk || emailOk) {
+    const now = new Date();
+    await db.ticket.update({
+      where: { id: ticket.id },
+      data: { ...(slackOk && { slackPostedAt: now }), ...(emailOk && { emailSentAt: now }) },
+    });
   }
   return ticket;
 }

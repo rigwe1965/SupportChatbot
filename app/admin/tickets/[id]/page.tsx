@@ -53,10 +53,10 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
           <dd className="font-medium">{t.createdAt.toLocaleString()}</dd>
         </div>
         <div>
-          <dt className="text-muted">{t.resolvedAt ? "Resolved" : "Slack"}</dt>
-          <dd className="font-medium">
-            {t.resolvedAt ? t.resolvedAt.toLocaleString() : t.slackPostedAt ? "Notified" : "Not sent"}
-          </dd>
+          <dt className="text-muted">Notifications</dt>
+          <dd className="font-medium">Slack: {t.slackPostedAt ? "sent" : "not sent"}</dd>
+          <dd className="font-medium">Email: {t.emailSentAt ? "sent" : "not sent"}</dd>
+          {t.resolvedAt && <dd className="text-muted">Resolved {t.resolvedAt.toLocaleString()}</dd>}
         </div>
       </dl>
 

@@ -52,6 +52,7 @@ Database: **Neon Postgres** (the Vercel Marketplace integration replaces Vercel 
 
 Notes
 - OAuth only works on the domain in `NEXTAUTH_URL`, so preview deployments can't sign in. Give Preview its own Neon branch/database so `migrate deploy` never touches production data.
+- New tickets can be emailed to the team via Resend (`RESEND_API_KEY`, `EMAIL_FROM`, `TICKET_NOTIFY_EMAILS`, defaulting to `ADMIN_EMAILS`). Verify your sending domain in Resend first.
 - Chat is rate limited per user (default 10/minute, 100/hour; see `RATE_LIMIT_CHAT_*`). Counters live in Postgres (`RateLimit` table), so no extra service is needed.
 - Chat and bulk re-embedding functions are capped at 60 s (`maxDuration`).
 - Rotate `NEXTAUTH_SECRET` and never commit `.env`.

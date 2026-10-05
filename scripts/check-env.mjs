@@ -22,6 +22,10 @@ if (missing("SLACK_WEBHOOK_URL") && (missing("SLACK_BOT_TOKEN") || missing("SLAC
   console.warn("Warning: Slack is not configured, escalation tickets will not be posted to Slack.");
 }
 
+if (missing("RESEND_API_KEY")) {
+  console.warn("Warning: RESEND_API_KEY is not set, new tickets will not be emailed.");
+}
+
 if (errors.length) {
   console.error(`\n${errors.map((e) => `✖ ${e}`).join("\n")}\n`);
   process.exit(1);

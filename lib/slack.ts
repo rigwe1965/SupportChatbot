@@ -1,24 +1,9 @@
-import type { EscalationReason } from "@prisma/client";
+import { REASON_LABEL, clip, type TicketPayload } from "@/lib/ticket-format";
 
-export interface TicketPayload {
-  id: string;
-  reason: EscalationReason;
-  userName: string | null;
-  userEmail: string | null;
-  question: string;
-  lastAnswer: string | null;
-  transcript: { role: string; content: string }[];
-}
-
-const REASON_LABEL: Record<EscalationReason, string> = {
-  HUMAN_REQUESTED: "Customer asked for a human",
-  LOW_CONFIDENCE: "AI not confident in its answer",
-  REPEATED_FAILURES: "AI failed to answer repeatedly",
-};
+export type { TicketPayload };
 
 // Slack treats &, < and > as control characters (<!channel> would ping everyone).
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
 
 function buildBlocks(t: TicketPayload) {
   const transcript = t.transcript

@@ -8,9 +8,11 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/slack", () => ({ postTicketToSlack: vi.fn() }));
+vi.mock("@/lib/ticket-email", () => ({ sendTicketEmail: vi.fn() }));
 
 import { db } from "@/lib/db";
 import { postTicketToSlack } from "@/lib/slack";
+import { sendTicketEmail } from "@/lib/ticket-email";
 import { countFailedAttempts, escalate, wantsHuman } from "@/lib/escalation";
 
 const mdb = db as unknown as {
@@ -18,6 +20,7 @@ const mdb = db as unknown as {
   ticket: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn> };
 };
 const slack = postTicketToSlack as unknown as ReturnType<typeof vi.fn>;
+const email = sendTicketEmail as unknown as ReturnType<typeof vi.fn>;
 
 describe("wantsHuman", () => {
   it.each([
@@ -126,6 +129,7 @@ describe("escalate", () => {
     mdb.ticket.create.mockImplementation(async ({ data }) => ({ id: "t_123456", ...data }));
     mdb.ticket.update.mockResolvedValue({});
     slack.mockResolvedValue(true);
+    email.mockResolvedValue(false);
   });
 
   it("saves an open ticket with user info, original question, last answer and transcript", async () => {
@@ -194,6 +198,64 @@ describe("escalate", () => {
     const ticket = await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
     expect(ticket.id).toBe("t_123456");
     expect(mdb.ticket.update).not.toHaveBeenCalled();
+  });
+
+  describe("email notification", () => {
+    it("emails the team with the same payload as Slack", async () => {
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+      expect(email).toHaveBeenCalledWith(slack.mock.calls[0][0]);
+      expect(email).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "t_123456", userEmail: "ada@example.com", question: "Where is my invoice?" }),
+      );
+    });
+
+    it("records emailSentAt (and not slackPostedAt) when only the email went out", async () => {
+      slack.mockResolvedValue(false);
+      email.mockResolvedValue(true);
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+
+      const { data } = mdb.ticket.update.mock.calls[0][0];
+      expect(data.emailSentAt).toBeInstanceOf(Date);
+      expect(data).not.toHaveProperty("slackPostedAt");
+    });
+
+    it("records both timestamps when both channels succeed", async () => {
+      email.mockResolvedValue(true);
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+      const { data } = mdb.ticket.update.mock.calls[0][0];
+      expect(Object.keys(data).sort()).toEqual(["emailSentAt", "slackPostedAt"]);
+    });
+
+    it("starts Slack and email together, so a slow channel doesn't delay the other", async () => {
+      const started: string[] = [];
+      slack.mockImplementation(async () => {
+        started.push("slack");
+        await new Promise((r) => setTimeout(r, 20));
+        return true;
+      });
+      email.mockImplementation(async () => {
+        started.push("email");
+        return true;
+      });
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+      expect(started).toEqual(["slack", "email"]);
+    });
+
+    it("does not touch the ticket when nothing could be sent", async () => {
+      slack.mockResolvedValue(false);
+      email.mockResolvedValue(false);
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+      expect(mdb.ticket.update).not.toHaveBeenCalled();
+    });
+
+    it("is not sent for a duplicate escalation", async () => {
+      mdb.ticket.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError("dup", { code: "P2002", clientVersion: "test" }),
+      );
+      mdb.ticket.findFirst.mockResolvedValue({ id: "existing" });
+      await escalate({ conversationId: "c1", user, reason: "HUMAN_REQUESTED" });
+      expect(email).not.toHaveBeenCalled();
+    });
   });
 
   it("is idempotent: a concurrent duplicate returns the existing open ticket", async () => {

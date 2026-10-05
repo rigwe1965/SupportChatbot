@@ -148,6 +148,7 @@ model Ticket {
   conversationId String?
   conversation   Conversation?    @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   slackPostedAt  DateTime?
+  emailSentAt    DateTime?
   createdAt      DateTime         @default(now())
   resolvedAt     DateTime?
 
