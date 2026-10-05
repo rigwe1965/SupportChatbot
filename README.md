@@ -35,6 +35,12 @@ Besides Google/GitHub, people can sign up with an email and password (`/register
   person sets a password via "Forgot password"; and changing a password doesn't sign out existing sessions
   (JWT sessions last until they expire).
 
+### Downloading your data
+
+`/account` has a "Download my data" button (password required for password accounts). It returns a JSON file with the
+profile, all conversations and messages (including feedback given) and support tickets. Password hashes, one-time
+links, OAuth tokens and admin-only bookkeeping are never included. Limited to 5 exports per hour per user.
+
 ### Deleting an account
 
 Signed-in users can delete their own account at `/account` (typing `DELETE`, plus their password if they have one).

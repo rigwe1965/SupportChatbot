@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import DeleteAccountForm from "@/components/auth/DeleteAccountForm";
+import DownloadDataForm from "@/components/auth/DownloadDataForm";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -21,6 +22,17 @@ export default async function AccountPage() {
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
         <p className="text-muted">Signed in as {user.email ?? session.user.name}</p>
       </div>
+
+      <section className="space-y-4 rounded-xl border border-border p-6">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Download my data</h2>
+          <p className="text-sm text-muted">
+            A JSON file with your profile, all of your conversations and messages (including any feedback you gave),
+            and your support tickets. Passwords and sign-in tokens are never included.
+          </p>
+        </div>
+        <DownloadDataForm needsPassword={!!user.passwordHash} />
+      </section>
 
       <section className="space-y-4 rounded-xl border border-red-500/40 p-6">
         <div className="space-y-1">
