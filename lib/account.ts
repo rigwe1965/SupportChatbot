@@ -95,7 +95,8 @@ export async function resetPassword(token: string, newPassword: unknown): Promis
     await tx.user.update({
       where: { id: found.userId },
       // Following a link sent to the address proves its owner, so it counts as confirmed too.
-      data: { passwordHash, emailVerified: user.emailVerified ?? new Date() },
+      // Anyone who had the old password (or a session from it) is signed out.
+      data: { passwordHash, emailVerified: user.emailVerified ?? new Date(), sessionsValidFrom: new Date() },
     });
     // Any other outstanding links for this account are void now.
     await tx.authToken.deleteMany({ where: { userId: found.userId } });

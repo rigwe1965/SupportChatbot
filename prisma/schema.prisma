@@ -37,22 +37,24 @@ enum Role {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String?
-  email         String?        @unique
-  emailVerified DateTime?
-  image         String?
-  role          Role           @default(FREE)
-  createdAt     DateTime       @default(now())
-  accounts      Account[]
-  sessions      Session[]
-  conversations Conversation[]
-  articles      Article[]
-  tickets       Ticket[]
-  auditLogs     AuditLog[]
+  id                String         @id @default(cuid())
+  name              String?
+  email             String?        @unique
+  emailVerified     DateTime?
+  image             String?
+  role              Role           @default(FREE)
+  createdAt         DateTime       @default(now())
+  accounts          Account[]
+  sessions          Session[]
+  conversations     Conversation[]
+  articles          Article[]
+  tickets           Ticket[]
+  auditLogs         AuditLog[]
   /// scrypt hash; null for accounts that only use Google/GitHub
-  passwordHash  String?
-  authTokens    AuthToken[]
+  passwordHash      String?
+  /// Sessions signed in before this moment are no longer valid ("sign out everywhere", password reset).
+  sessionsValidFrom DateTime?
+  authTokens        AuthToken[]
 }
 
 model Account {

@@ -196,7 +196,7 @@ describe("resetPassword", () => {
     expect(useToken).toHaveBeenCalledWith("tok", "RESET_PASSWORD", expect.anything());
     expect(user.update).toHaveBeenCalledWith({
       where: { id: "u1" },
-      data: { passwordHash: `hashed(${GOOD})`, emailVerified: expect.any(Date) },
+      data: { passwordHash: `hashed(${GOOD})`, emailVerified: expect.any(Date), sessionsValidFrom: expect.any(Date) },
     });
     expect(db.authToken.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
     expect(sentTo()).toEqual(["ada@example.com"]);

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import ChangePasswordForm from "@/components/auth/ChangePasswordForm";
 import DeleteAccountForm from "@/components/auth/DeleteAccountForm";
+import SignOutEverywhereButton from "@/components/auth/SignOutEverywhereButton";
 import DownloadDataForm from "@/components/auth/DownloadDataForm";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -35,6 +36,17 @@ export default async function AccountPage() {
             password, <Link href="/forgot-password" className="text-brand hover:underline">set one by email</Link>.
           </p>
         )}
+      </section>
+
+      <section className="space-y-4 rounded-xl border border-border p-6">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Sign out everywhere</h2>
+          <p className="text-sm text-muted">
+            Signs you out on every device, including this one. Use it if you lost a device or think someone else has
+            been using your account.
+          </p>
+        </div>
+        <SignOutEverywhereButton />
       </section>
 
       <section className="space-y-4 rounded-xl border border-border p-6">

@@ -49,6 +49,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.authAt = Date.now();
         // The adapter returns the freshly created user as FREE; apply the admin list here
         // so the very first sign-in already carries the right role.
         token.role = isAdminSignIn(user, account?.provider) ? "ADMIN" : user.role;
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
     session({ session, token }) {
       session.user.id = token.id;
       session.user.role = token.role;
+      session.authAt = token.authAt;
       return session;
     },
   },
@@ -81,12 +83,19 @@ export const authOptions: NextAuthOptions = {
 };
 
 /**
- * The current session, or null. Sessions are JWTs that outlive the account (e.g. on other devices
- * after "delete my account"), so this also confirms the user still exists.
+ * The current session, or null. Sessions are JWTs that outlive the account and can't be revoked
+ * one by one, so this also checks the user still exists and that the sign-in is newer than
+ * User.sessionsValidFrom ("sign out everywhere", password reset). Tokens from before this check
+ * existed have no sign-in time, so they count as oldest.
  */
 export async function getSession() {
   const session = await getServerSession(authOptions);
   if (!session) return null;
-  const exists = await db.user.findUnique({ where: { id: session.user.id }, select: { id: true } });
-  return exists ? session : null;
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { sessionsValidFrom: true },
+  });
+  if (!user) return null;
+  if (user.sessionsValidFrom && (session.authAt ?? 0) < user.sessionsValidFrom.getTime()) return null;
+  return session;
 }

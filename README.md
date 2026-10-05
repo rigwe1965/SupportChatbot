@@ -32,14 +32,23 @@ Besides Google/GitHub, people can sign up with an email and password (`/register
 - Emails are sent through Resend (`RESEND_API_KEY`). In development without a key, the email (and its link) is
   printed in the server console instead.
 - Known limits: signing in with a password and with Google/GitHub for the same address are separate until the
-  person sets a password via "Forgot password"; and changing a password doesn't sign out existing sessions
-  (JWT sessions last until they expire).
+  person sets a password via "Forgot password"; and changing a password while signed in doesn't sign out other
+  devices (a reset from the emailed link does, and so does "Sign out everywhere").
+
+### Signing out everywhere
+
+`/account` has a "Sign out everywhere" button. Sessions are JWTs, which can't be revoked one by one, so each user has a
+`sessionsValidFrom` time: every sign-in records when it happened, and `getSession()` rejects any session that began
+before that time. The same cutoff is applied when a password is reset from the emailed link, so whoever had the old
+password is signed out. Changing a password while signed in does not sign out other devices. Needs migration
+`20261005120000_sessions_valid_from`. Sessions that existed before this feature have no sign-in time, so they are signed
+out the first time anyone uses the button; until then they keep working.
 
 ### Changing your password
 
 `/account` lets people with a password change it (current password + new one, same rules as sign-up). It is limited to
-5 attempts per hour per user, voids any outstanding email links, and sends a "password changed" email. It doesn't sign
-out other devices. Google/GitHub-only accounts are pointed to "Forgot password" to set a first password.
+5 attempts per hour per user, voids any outstanding email links, and sends a "password changed" email. To sign
+other devices out, use "Sign out everywhere". Google/GitHub-only accounts are pointed to "Forgot password" to set a first password.
 
 ### Downloading your data
 

@@ -111,3 +111,23 @@ describe("password sign-ups can't claim an admin address", () => {
     expect(o.providers.map((p) => p.id)).toEqual(["google", "github", "credentials"]);
   });
 });
+
+describe("session sign-in time", () => {
+  it("is stamped on sign-in and exposed on the session, so 'sign out everywhere' can compare it", async () => {
+    const o = await options("");
+    const before = Date.now();
+    const token = await o.callbacks!.jwt!({
+      token: {},
+      user: { id: "u1", email: "a@b.com", role: "FREE" },
+      account: { provider: "google", type: "oauth" },
+    } as never);
+    expect(token.authAt).toBeGreaterThanOrEqual(before);
+
+    // later requests (no `user`) must keep the original sign-in time
+    const again = await o.callbacks!.jwt!({ token } as never);
+    expect(again.authAt).toBe(token.authAt);
+
+    const session = await o.callbacks!.session!({ session: { user: {} }, token } as never);
+    expect((session as { authAt?: number }).authAt).toBe(token.authAt);
+  });
+});
