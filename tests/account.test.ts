@@ -20,7 +20,7 @@ vi.mock("@/lib/password", async (original) => ({
 }));
 
 import { sendAccountEmail } from "@/lib/account-email";
-import { normalizeEmail, registerUser, requestPasswordReset, resetPassword, verifyEmail } from "@/lib/account";
+import { changePassword, normalizeEmail, registerUser, requestPasswordReset, resetPassword, verifyEmail } from "@/lib/account";
 import { consumeToken, createToken } from "@/lib/auth-tokens";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
@@ -239,5 +239,55 @@ describe("resetPassword", () => {
     await resetPassword("tok", GOOD);
     expect(JSON.stringify(user.update.mock.calls)).not.toContain(`"${GOOD}"`);
     expect(sentText()).not.toContain(GOOD);
+  });
+});
+
+describe("changePassword", () => {
+  const OLD = "old password value";
+  let oldHash: string;
+  beforeEach(async () => {
+    const { hashPassword: real } = await vi.importActual<typeof import("@/lib/password")>("@/lib/password");
+    oldHash ??= await real(OLD);
+    user.findUnique.mockResolvedValue({ email: "ada@example.com", passwordHash: oldHash } as never);
+    vi.mocked(db.authToken.deleteMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(db.$transaction).mockImplementation((async (ops: unknown[]) => ops) as never);
+  });
+
+  it("sets the new password, voids outstanding links and notifies the owner", async () => {
+    expect(await changePassword("u1", OLD, GOOD)).toEqual({ ok: true });
+    expect(user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { passwordHash: `hashed(${GOOD})` } });
+    expect(db.authToken.deleteMany).toHaveBeenCalledWith({ where: { userId: "u1" } });
+    expect(sentTo()).toEqual(["ada@example.com"]);
+    expect(sentSubject()).toMatch(/password was changed/i);
+    expect(sentText()).not.toContain(GOOD);
+  });
+
+  it.each(["wrong password!", "", undefined, 5])("refuses the wrong current password %j", async (current) => {
+    expect(await changePassword("u1", current, GOOD)).toEqual({ error: expect.stringMatching(/current password/) });
+    expect(user.update).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("rejects a weak or unchanged new password", async () => {
+    expect(await changePassword("u1", OLD, "short")).toEqual({ error: expect.stringMatching(/at least 10/) });
+    expect(await changePassword("u1", OLD, OLD)).toEqual({ error: expect.stringMatching(/different/) });
+    expect(user.update).not.toHaveBeenCalled();
+  });
+
+  it("tells Google/GitHub-only accounts how to set a first password", async () => {
+    user.findUnique.mockResolvedValue({ email: "a@b.com", passwordHash: null } as never);
+    expect(await changePassword("u1", "anything", GOOD)).toEqual({ error: expect.stringMatching(/Forgot password/) });
+    expect(user.update).not.toHaveBeenCalled();
+  });
+
+  it("reports a missing account", async () => {
+    user.findUnique.mockResolvedValue(null);
+    expect(await changePassword("u1", OLD, GOOD)).toEqual({ error: expect.stringMatching(/no longer exists/) });
+  });
+
+  it("still succeeds if the notification email fails", async () => {
+    send.mockRejectedValue(new Error("smtp down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await changePassword("u1", OLD, GOOD)).toEqual({ ok: true });
   });
 });

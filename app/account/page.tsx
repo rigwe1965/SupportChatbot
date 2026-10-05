@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import ChangePasswordForm from "@/components/auth/ChangePasswordForm";
 import DeleteAccountForm from "@/components/auth/DeleteAccountForm";
 import DownloadDataForm from "@/components/auth/DownloadDataForm";
 import { getSession } from "@/lib/auth";
@@ -22,6 +24,18 @@ export default async function AccountPage() {
         <h1 className="text-3xl font-bold tracking-tight">Account</h1>
         <p className="text-muted">Signed in as {user.email ?? session.user.name}</p>
       </div>
+
+      <section className="space-y-4 rounded-xl border border-border p-6">
+        <h2 className="text-lg font-semibold">Password</h2>
+        {user.passwordHash ? (
+          <ChangePasswordForm />
+        ) : (
+          <p className="text-sm text-muted">
+            You sign in with Google or GitHub, so there&apos;s no password to change. To also sign in with an email and
+            password, <Link href="/forgot-password" className="text-brand hover:underline">set one by email</Link>.
+          </p>
+        )}
+      </section>
 
       <section className="space-y-4 rounded-xl border border-border p-6">
         <div className="space-y-1">

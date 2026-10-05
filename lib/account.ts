@@ -7,7 +7,7 @@ import {
   verifyEmailContent,
 } from "@/lib/account-email";
 import { consumeToken, createToken } from "@/lib/auth-tokens";
-import { hashPassword, validatePassword } from "@/lib/password";
+import { hashPassword, validatePassword, verifyPassword } from "@/lib/password";
 
 const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
@@ -104,5 +104,40 @@ export async function resetPassword(token: string, newPassword: unknown): Promis
 
   if (!email) return { error: INVALID_LINK };
   await sendAccountEmail(email, passwordChangedContent());
+  return { ok: true };
+}
+
+export const NO_PASSWORD_YET =
+  'Your account signs in with Google or GitHub and has no password yet. Use "Forgot password" on the sign-in page to set one.';
+
+/**
+ * Changes the password of a signed-in person who knows the current one. Outstanding email links
+ * (e.g. an old reset link) are voided, and the owner is told by email.
+ */
+export async function changePassword(userId: string, currentPassword: unknown, newPassword: unknown): Promise<Result> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true, passwordHash: true } });
+  if (!user) return { error: "This account no longer exists." };
+  if (!user.passwordHash) return { error: NO_PASSWORD_YET };
+
+  const current = typeof currentPassword === "string" ? currentPassword : "";
+  if (!current || !(await verifyPassword(current, user.passwordHash))) {
+    return { error: "Your current password is incorrect" };
+  }
+
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) return { error: passwordError };
+  if (newPassword === current) return { error: "Choose a password different from your current one" };
+
+  const passwordHash = await hashPassword(newPassword as string);
+  await db.$transaction([
+    db.user.update({ where: { id: userId }, data: { passwordHash } }),
+    db.authToken.deleteMany({ where: { userId } }),
+  ]);
+
+  if (user.email) {
+    await sendAccountEmail(user.email, passwordChangedContent()).catch((err) =>
+      console.error("password changed email failed", err),
+    );
+  }
   return { ok: true };
 }

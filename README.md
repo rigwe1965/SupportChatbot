@@ -35,6 +35,12 @@ Besides Google/GitHub, people can sign up with an email and password (`/register
   person sets a password via "Forgot password"; and changing a password doesn't sign out existing sessions
   (JWT sessions last until they expire).
 
+### Changing your password
+
+`/account` lets people with a password change it (current password + new one, same rules as sign-up). It is limited to
+5 attempts per hour per user, voids any outstanding email links, and sends a "password changed" email. It doesn't sign
+out other devices. Google/GitHub-only accounts are pointed to "Forgot password" to set a first password.
+
 ### Downloading your data
 
 `/account` has a "Download my data" button (password required for password accounts). It returns a JSON file with the
