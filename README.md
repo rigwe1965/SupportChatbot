@@ -14,9 +14,22 @@ A customer support chatbot built with Next.js 14 (App Router), TypeScript, Tailw
 ```bash
 npm install
 cp .env.example .env        # Windows: copy .env.example .env
-npx prisma migrate dev --name init
+docker compose up -d        # local PostgreSQL (or point DATABASE_URL at your own)
+npx prisma migrate deploy
 npm run dev
 ```
+
+### Authentication
+
+NextAuth.js v4 with Google and GitHub, Prisma adapter, JWT sessions.
+
+1. Create OAuth apps and fill in `GOOGLE_CLIENT_*` / `GITHUB_*` in `.env`
+   (callback URLs are listed in `.env.example`).
+2. Set `NEXTAUTH_SECRET` (`openssl rand -base64 32`).
+3. Emails in `ADMIN_EMAILS` become `ADMIN` on sign-in; everyone else is `FREE`.
+
+- Protected routes: `/dashboard` (any user), `/admin` (admin only) — see `middleware.ts`.
+- Server: `getSession()` from `lib/auth.ts`. Client: `useSession()`.
 
 Open <http://localhost:3000>. Health check: <http://localhost:3000/api/health>.
 
