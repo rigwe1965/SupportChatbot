@@ -73,6 +73,7 @@ prisma/        Prisma schema and migrations
 | `npm run build` | Production build         |
 | `npm start`     | Run the production build |
 | `npm run lint`  | Lint with ESLint         |
+| `npm test`      | Run the Vitest suite     |
 
 ## Roadmap
 
