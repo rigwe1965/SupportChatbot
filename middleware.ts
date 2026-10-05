@@ -14,4 +14,4 @@ export default withAuth(
 );
 
 // Routes that require a signed-in user. /admin additionally requires the ADMIN role.
-export const config = { matcher: ["/dashboard/:path*", "/admin/:path*"] };
+export const config = { matcher: ["/dashboard/:path*", "/admin/:path*", "/chat/:path*"] };

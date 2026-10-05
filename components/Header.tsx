@@ -15,6 +15,9 @@ export default async function Header() {
           </Link>
           {session && (
             <nav className="flex items-center gap-4 text-sm text-muted">
+              <Link href="/chat" className="hover:text-foreground">
+                Chat
+              </Link>
               <Link href="/dashboard" className="hover:text-foreground">
                 Dashboard
               </Link>

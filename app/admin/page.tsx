@@ -1,19 +1,19 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import Link from "next/link";
+import { requireAdminPage } from "@/lib/admin-page";
 import { db } from "@/lib/db";
 
 export default async function AdminPage() {
-  const session = await getSession();
-  if (!session) redirect("/signin?callbackUrl=/admin");
-  // Re-check against the DB so a demoted admin loses access before their JWT expires.
-  const me = await db.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
-  if (me?.role !== "ADMIN") redirect("/dashboard");
-
+  await requireAdminPage("/admin");
   const users = await db.user.findMany({ orderBy: { createdAt: "desc" } });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Admin</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Admin</h1>
+        <Link href="/admin/articles" className="text-sm text-brand hover:underline">
+          Manage knowledge base →
+        </Link>
+      </div>
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border text-muted">

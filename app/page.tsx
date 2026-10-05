@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const features = [
   { title: "Next.js 14", body: "App Router, server components and API routes." },
   { title: "Tailwind CSS", body: "Token-based theming with class dark mode." },
@@ -18,6 +20,12 @@ export default function Home() {
           </code>{" "}
           to get going.
         </p>
+        <Link
+          href="/chat"
+          className="inline-flex h-10 items-center rounded-lg bg-brand px-5 text-sm font-medium text-brand-foreground hover:opacity-90"
+        >
+          Start chatting
+        </Link>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
