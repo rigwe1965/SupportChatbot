@@ -5,8 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "prisma generate",
+    "vercel-build": "node scripts/check-env.mjs && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

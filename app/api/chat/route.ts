@@ -17,6 +17,8 @@ import { buildSystemPrompt } from "@/lib/prompt";
 import type { ChatStreamEvent, Source } from "@/types";
 
 export const dynamic = "force-dynamic";
+// Streaming replies can take a while; 60s is within every Vercel plan's limit.
+export const maxDuration = 60;
 
 const MAX_MESSAGE_CHARS = 4000;
 const HISTORY_MESSAGES = 10;

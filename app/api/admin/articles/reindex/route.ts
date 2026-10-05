@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/guard";
 import { reindexArticle } from "@/lib/knowledge";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 /** Regenerates embeddings for every article, one at a time. */
 export async function POST() {
