@@ -11,7 +11,8 @@ export type AuditAction =
   | "feedback.review"
   | "feedback.reopen"
   | "feedback.export"
-  | "user.promoted_admin";
+  | "user.promoted_admin"
+  | "audit.purge";
 
 export interface AuditEntry {
   action: AuditAction;
@@ -39,12 +40,13 @@ export function clientIp(req?: Request): string | null {
  *
  * Best-effort: a failure to write is logged but never turns a completed admin action into an error.
  */
-export async function recordAudit(actor: AuditActor, entry: AuditEntry, req?: Request): Promise<void> {
+export async function recordAudit(actor: AuditActor | null, entry: AuditEntry, req?: Request): Promise<void> {
   try {
     await db.auditLog.create({
       data: {
-        actorId: actor.userId,
-        actorEmail: actor.email ?? null,
+        actorId: actor?.userId ?? null,
+        // A null actor is the system itself (e.g. the retention job).
+        actorEmail: actor ? (actor.email ?? null) : "system",
         action: entry.action,
         targetType: entry.targetType ?? null,
         targetId: entry.targetId ?? null,
@@ -64,6 +66,7 @@ export const AUDIT_CATEGORIES = [
   { key: "ticket", label: "Tickets" },
   { key: "feedback", label: "Feedback" },
   { key: "user", label: "Users" },
+  { key: "audit", label: "Retention" },
 ] as const;
 
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number]["key"];

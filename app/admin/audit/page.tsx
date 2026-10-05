@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin-page";
 import { AUDIT_CATEGORIES, listAudit, parseAuditCategory } from "@/lib/audit";
+import { retentionDays } from "@/lib/audit-retention";
 
 const ACTION_LABEL: Record<string, string> = {
   "article.create": "Article created",
@@ -13,6 +14,7 @@ const ACTION_LABEL: Record<string, string> = {
   "feedback.reopen": "Feedback reopened",
   "feedback.export": "Feedback exported",
   "user.promoted_admin": "Admin promotion",
+  "audit.purge": "Old entries deleted",
 };
 
 export default async function AuditPage({ searchParams }: { searchParams: { category?: string; page?: string } }) {
@@ -20,6 +22,7 @@ export default async function AuditPage({ searchParams }: { searchParams: { cate
   const category = parseAuditCategory(searchParams.category);
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
   const { entries, hasMore } = await listAudit(category, page);
+  const keepDays = retentionDays();
 
   const href = (c: string, p: number) => `/admin/audit?category=${c}${p > 1 ? `&page=${p}` : ""}`;
 
@@ -29,6 +32,11 @@ export default async function AuditPage({ searchParams }: { searchParams: { cate
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Audit log</h1>
           <p className="text-sm text-muted">Who did what in the admin area, newest first</p>
+          <p className="text-xs text-muted">
+            {keepDays === null
+              ? "Entries are kept indefinitely."
+              : `Entries older than ${keepDays} days are deleted automatically.`}
+          </p>
         </div>
         <div className="inline-flex flex-wrap rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Category">
           {AUDIT_CATEGORIES.map((c) => (

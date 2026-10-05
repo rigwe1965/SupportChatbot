@@ -22,6 +22,9 @@ if (missing("SLACK_WEBHOOK_URL") && (missing("SLACK_BOT_TOKEN") || missing("SLAC
   console.warn("Warning: Slack is not configured, escalation tickets will not be posted to Slack.");
 }
 
+if (missing("CRON_SECRET")) {
+  console.warn("Warning: CRON_SECRET is not set, the daily audit log retention job will be rejected.");
+}
 if (missing("RESEND_API_KEY")) {
   console.warn("Warning: RESEND_API_KEY is not set, new tickets will not be emailed.");
 }

@@ -67,6 +67,11 @@ describe("recordAudit", () => {
     });
   });
 
+  it("attributes entries without an actor to the system", async () => {
+    await recordAudit(null, { action: "audit.purge", summary: "Deleted 3 audit log entries" });
+    expect(create.mock.calls[0][0].data).toMatchObject({ actorId: null, actorEmail: "system" });
+  });
+
   it("stores nulls for optional fields", async () => {
     await recordAudit({ userId: "u1" }, { action: "article.reindex_all", summary: "Regenerated" });
     expect(create.mock.calls[0][0].data).toMatchObject({
@@ -90,6 +95,7 @@ describe("parseAuditCategory", () => {
     ["ticket", "ticket"],
     ["feedback", "feedback"],
     ["user", "user"],
+    ["audit", "audit"],
     ["all", "all"],
     ["nope", "all"],
     ["", "all"],
