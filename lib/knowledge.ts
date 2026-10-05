@@ -70,3 +70,14 @@ export async function retrieve(question: string, limit = 5): Promise<RetrievedCh
     ORDER BY c."embedding" <=> ${q}::vector
     LIMIT ${limit}`;
 }
+
+/** Re-chunks and re-embeds an article from its stored content (e.g. after changing the embedding model). */
+export async function reindexArticle(id: string) {
+  const article = await db.article.findUniqueOrThrow({ where: { id } });
+  const chunks = await buildChunks(article);
+  await db.$transaction(async (tx) => {
+    await tx.articleChunk.deleteMany({ where: { articleId: id } });
+    await insertChunks(tx, id, chunks);
+  });
+  return chunks.length;
+}
