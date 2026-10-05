@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 
 const adminEmails = (process.env.ADMIN_EMAILS ?? "")
@@ -48,6 +49,15 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user }) {
       if (user.email && adminEmails.includes(user.email.toLowerCase()) && user.role !== "ADMIN") {
         await db.user.update({ where: { id: user.id }, data: { role: "ADMIN" } });
+        await recordAudit(
+          { userId: user.id, email: user.email },
+          {
+            action: "user.promoted_admin",
+            targetType: "user",
+            targetId: user.id,
+            summary: `${user.email} was promoted to admin (listed in ADMIN_EMAILS)`,
+          },
+        );
       }
     },
   },

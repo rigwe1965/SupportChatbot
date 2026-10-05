@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/guard", () => ({ requireAdmin: vi.fn() }));
+vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn() }));
 vi.mock("@/lib/feedback-review", async (original) => ({
   ...(await original<typeof import("@/lib/feedback-review")>()),
   listNegativeFeedback: vi.fn(),
@@ -138,7 +139,7 @@ describe("GET /api/admin/feedback/export", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(requireAdmin).mockResolvedValue({ userId: "admin1" });
+    vi.mocked(requireAdmin).mockResolvedValue({ userId: "admin1", email: "admin@example.com" });
     list.mockResolvedValue([item()]);
   });
 

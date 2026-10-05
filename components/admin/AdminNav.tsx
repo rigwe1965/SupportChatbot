@@ -9,6 +9,7 @@ const links = [
   { href: "/admin/feedback", label: "Feedback" },
   { href: "/admin/articles", label: "Knowledge base" },
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/audit", label: "Audit log" },
 ];
 
 export default function AdminNav({ openTickets, unreviewedFeedback }: { openTickets: number; unreviewedFeedback: number }) {

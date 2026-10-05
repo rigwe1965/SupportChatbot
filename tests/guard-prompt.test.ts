@@ -34,10 +34,16 @@ describe("requireAdmin", () => {
     expect("error" in r && r.error.status).toBe(403);
   });
 
-  it("returns the user id for admins", async () => {
+  it("returns the user id and email for admins (the email is recorded in the audit log)", async () => {
+    session.mockResolvedValue({ user: { id: "u1", email: "admin@example.com" } });
+    findUser.mockResolvedValue({ role: "ADMIN" });
+    expect(await requireAdmin()).toEqual({ userId: "u1", email: "admin@example.com" });
+  });
+
+  it("returns a null email when the account has none", async () => {
     session.mockResolvedValue({ user: { id: "u1" } });
     findUser.mockResolvedValue({ role: "ADMIN" });
-    expect(await requireAdmin()).toEqual({ userId: "u1" });
+    expect(await requireAdmin()).toEqual({ userId: "u1", email: null });
   });
 });
 

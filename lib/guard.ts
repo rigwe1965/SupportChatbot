@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 import type { ArticleInput } from "@/types";
 
 /** For API routes: returns the admin's user id, or a ready-made error response. */
-export async function requireAdmin(): Promise<{ userId: string } | { error: NextResponse }> {
+export async function requireAdmin(): Promise<
+  { userId: string; email: string | null } | { error: NextResponse }
+> {
   const session = await getSession();
   if (!session) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   // Check the DB rather than the JWT so role changes apply immediately.
@@ -12,7 +14,7 @@ export async function requireAdmin(): Promise<{ userId: string } | { error: Next
   if (user?.role !== "ADMIN") {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
-  return { userId: session.user.id };
+  return { userId: session.user.id, email: session.user.email ?? null };
 }
 
 /** Validates an article request body; returns the clean input or an error message. */

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/audit";
 import { requireAdmin, parseArticle } from "@/lib/guard";
 import { createArticle } from "@/lib/knowledge";
 import { db } from "@/lib/db";
@@ -23,6 +24,17 @@ export async function POST(req: Request) {
 
   try {
     const article = await createArticle(parsed.value, auth.userId);
+    await recordAudit(
+      auth,
+      {
+        action: "article.create",
+        targetType: "article",
+        targetId: article.id,
+        summary: `Created article "${article.title}"`,
+        metadata: { category: article.category },
+      },
+      req,
+    );
     return NextResponse.json({ data: article }, { status: 201 });
   } catch (err) {
     console.error("create article failed", err);

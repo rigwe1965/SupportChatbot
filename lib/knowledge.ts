@@ -79,5 +79,5 @@ export async function reindexArticle(id: string) {
     await tx.articleChunk.deleteMany({ where: { articleId: id } });
     await insertChunks(tx, id, chunks);
   });
-  return chunks.length;
+  return { title: article.title, chunks: chunks.length };
 }

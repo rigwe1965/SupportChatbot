@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/guard", () => ({ requireAdmin: vi.fn() }));
+vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
     $queryRaw: vi.fn(),
@@ -45,7 +46,7 @@ const fullSql = () => (query.mock.calls[0][0] as unknown as string[]).join("?");
 
 beforeEach(() => {
   vi.resetAllMocks();
-  adminCheck.mockResolvedValue({ userId: "admin1" });
+  adminCheck.mockResolvedValue({ userId: "admin1", email: "admin@example.com" });
 });
 
 describe("listNegativeFeedback", () => {

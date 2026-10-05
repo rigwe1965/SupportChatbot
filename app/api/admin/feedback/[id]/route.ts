@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/audit";
 import { setReviewed } from "@/lib/feedback-review";
 import { requireAdmin } from "@/lib/guard";
 
@@ -15,5 +16,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!(await setReviewed(params.id, body.reviewed))) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  await recordAudit(
+    auth,
+    {
+      action: body.reviewed ? "feedback.review" : "feedback.reopen",
+      targetType: "message",
+      targetId: params.id,
+      summary: body.reviewed ? "Marked customer feedback as reviewed" : "Reopened customer feedback",
+    },
+    req,
+  );
   return NextResponse.json({ data: { id: params.id, reviewed: body.reviewed } });
 }

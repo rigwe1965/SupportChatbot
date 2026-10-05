@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/guard";
 import { reindexArticle } from "@/lib/knowledge";
@@ -6,7 +7,7 @@ import { reindexArticle } from "@/lib/knowledge";
 export const maxDuration = 60;
 
 /** Regenerates embeddings for every article, one at a time. */
-export async function POST() {
+export async function POST(req: Request) {
   const auth = await requireAdmin();
   if ("error" in auth) return auth.error;
 
@@ -22,5 +23,17 @@ export async function POST() {
       failed.push(id);
     }
   }
+
+  await recordAudit(
+    auth,
+    {
+      action: "article.reindex_all",
+      summary: `Regenerated embeddings for ${reindexed} article${reindexed === 1 ? "" : "s"}${
+        failed.length ? ` (${failed.length} failed)` : ""
+      }`,
+      metadata: { reindexed, failed: failed.length },
+    },
+    req,
+  );
   return NextResponse.json({ data: { reindexed, failed: failed.length } });
 }
