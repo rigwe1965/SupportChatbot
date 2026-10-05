@@ -154,3 +154,13 @@ model Ticket {
   @@index([status, createdAt])
   @@index([conversationId])
 }
+
+/// Fixed-window request counters used by lib/rate-limit.ts (shared across serverless instances).
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}

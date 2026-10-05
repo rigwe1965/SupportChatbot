@@ -18,15 +18,22 @@ vi.mock("@/lib/escalation", async (original) => ({
   getOpenTicket: vi.fn(),
 }));
 
+vi.mock("@/lib/rate-limit", async (original) => ({
+  ...(await original<typeof import("@/lib/rate-limit")>()),
+  rateLimit: vi.fn(),
+}));
+
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { countFailedAttempts, escalate, getOpenTicket } from "@/lib/escalation";
 import { retrieve } from "@/lib/knowledge";
 import { streamChat } from "@/lib/openai-chat";
+import { rateLimit } from "@/lib/rate-limit";
 import { POST } from "@/app/api/chat/route";
 
 const m = {
   session: vi.mocked(getSession),
+  rateLimit: vi.mocked(rateLimit),
   retrieve: vi.mocked(retrieve),
   streamChat: vi.mocked(streamChat),
   escalate: vi.mocked(escalate),
@@ -78,6 +85,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => {});
   m.session.mockResolvedValue({ user } as never);
+  m.rateLimit.mockResolvedValue({ allowed: true, limit: 10, remaining: 9, resetSeconds: 42 });
   m.convFind.mockResolvedValue({ id: "c1" } as never);
   m.convCreate.mockResolvedValue({ id: "c-new" } as never);
   m.convUpdate.mockResolvedValue({} as never);
@@ -119,6 +127,47 @@ describe("request validation", () => {
     expect(res.status).toBe(502);
     expect(m.convCreate).not.toHaveBeenCalled();
     expect(m.msgCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("rate limiting", () => {
+  const blocked = { allowed: false, limit: 10, remaining: 0, resetSeconds: 17 };
+
+  it("limits per signed-in user", async () => {
+    await (await post({ message: "hi" })).text();
+    expect(m.rateLimit).toHaveBeenCalledWith("chat:u1", expect.any(Array));
+  });
+
+  it("returns 429 with Retry-After and does no work when the limit is exceeded", async () => {
+    m.rateLimit.mockResolvedValue(blocked);
+    const res = await post({ message: "How do refunds work?" });
+
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("17");
+    expect((await res.json()).error).toMatch(/17s/);
+    expect(m.retrieve).not.toHaveBeenCalled();
+    expect(m.streamChat).not.toHaveBeenCalled();
+    expect(m.convCreate).not.toHaveBeenCalled();
+    expect(m.msgCreate).not.toHaveBeenCalled();
+  });
+
+  it("does not spend a rate-limit slot on signed-out requests", async () => {
+    m.session.mockResolvedValue(null);
+    await post({ message: "hi" });
+    expect(m.rateLimit).not.toHaveBeenCalled();
+  });
+
+  it("exposes the remaining quota on successful responses", async () => {
+    const res = await post({ message: "hi" });
+    expect(res.headers.get("X-RateLimit-Limit")).toBe("10");
+    expect(res.headers.get("X-RateLimit-Remaining")).toBe("9");
+    await res.text();
+  });
+
+  it("lets escalated conversations through the same limiter (no bypass)", async () => {
+    m.openTicket.mockResolvedValue({ id: "t" } as never);
+    m.rateLimit.mockResolvedValue(blocked);
+    expect((await post({ message: "hello?", conversationId: "c1" })).status).toBe(429);
   });
 });
 

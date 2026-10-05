@@ -28,15 +28,17 @@ export default function MessageItem({
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[85%] space-y-2 sm:max-w-[75%] ${isUser ? "items-end" : ""}`}>
-        <div
-          className={`whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isUser
-              ? "rounded-br-sm bg-brand text-brand-foreground"
-              : "rounded-bl-sm border border-border bg-foreground/[0.03]"
-          }`}
-        >
-          {message.content || (pending ? <TypingIndicator /> : null)}
-        </div>
+        {(message.content || pending) && (
+          <div
+            className={`whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              isUser
+                ? "rounded-br-sm bg-brand text-brand-foreground"
+                : "rounded-bl-sm border border-border bg-foreground/[0.03]"
+            }`}
+          >
+            {message.content || <TypingIndicator />}
+          </div>
+        )}
 
         {message.error && (
           <div

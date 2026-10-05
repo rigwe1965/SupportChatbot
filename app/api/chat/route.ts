@@ -14,6 +14,7 @@ import {
 import { retrieve } from "@/lib/knowledge";
 import { streamChat, type LlmMessage } from "@/lib/openai-chat";
 import { buildSystemPrompt } from "@/lib/prompt";
+import { chatRules, rateLimit, rateLimitHeaders, rateLimitResponse } from "@/lib/rate-limit";
 import type { ChatStreamEvent, Source } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,10 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = session.user;
+
+  // Every request costs embedding + completion tokens, so cap it per user before doing any work.
+  const limit = await rateLimit(`chat:${user.id}`, chatRules());
+  if (!limit.allowed) return rateLimitResponse(limit);
 
   const body = await req.json().catch(() => null);
   const message = typeof body?.message === "string" ? body.message.trim() : "";
@@ -202,6 +207,7 @@ export async function POST(req: Request) {
     headers: {
       "Content-Type": "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
+      ...rateLimitHeaders(limit),
     },
   });
 }
