@@ -21,6 +21,11 @@ enum EscalationReason {
   REPEATED_FAILURES
 }
 
+enum Feedback {
+  UP
+  DOWN
+}
+
 enum Role {
   FREE
   ADMIN
@@ -93,14 +98,18 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  role           String
-  content        String
-  sources        Json?
-  lowConfidence  Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  conversationId String
+  id              String       @id @default(cuid())
+  role            String
+  content         String
+  sources         Json?
+  lowConfidence   Boolean      @default(false)
+  /// Customer thumbs up/down on an assistant answer, with an optional reason for a thumbs down.
+  feedback        Feedback?
+  feedbackComment String?      @db.Text
+  feedbackAt      DateTime?
+  createdAt       DateTime     @default(now())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId  String
 
   @@index([conversationId])
 }

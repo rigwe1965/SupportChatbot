@@ -11,6 +11,8 @@ export interface OverviewStats {
   openTickets: number;
   totalTickets: number;
   resolvedTickets: number;
+  /** Customer thumbs up / down on answers in the selected range. */
+  feedback: { up: number; down: number };
   /** Mean seconds from a customer message to the saved AI reply, over the selected range. */
   avgResponseSeconds: number | null;
   daily: DailyPoint[];
@@ -18,9 +20,14 @@ export interface OverviewStats {
 }
 
 export async function getOverviewStats(days: number): Promise<OverviewStats> {
-  const [totalConversations, ticketCounts, avg, daily, topics] = await Promise.all([
+  const [totalConversations, ticketCounts, feedbackCounts, avg, daily, topics] = await Promise.all([
     db.conversation.count(),
     db.ticket.groupBy({ by: ["status"], _count: true }),
+    db.message.groupBy({
+      by: ["feedback"],
+      where: { feedback: { not: null }, feedbackAt: { gte: new Date(Date.now() - days * 24 * 3600 * 1000) } },
+      _count: true,
+    }),
     // Pairs each customer message with the next AI reply in the same conversation;
     // pairs over 5 minutes are ignored (those are retries/abandoned replies, not latency).
     db.$queryRaw<{ avg: number | null }[]>`
@@ -57,6 +64,10 @@ export async function getOverviewStats(days: number): Promise<OverviewStats> {
     openTickets,
     resolvedTickets,
     totalTickets: openTickets + resolvedTickets,
+    feedback: {
+      up: feedbackCounts.find((f) => f.feedback === "UP")?._count ?? 0,
+      down: feedbackCounts.find((f) => f.feedback === "DOWN")?._count ?? 0,
+    },
     avgResponseSeconds: avg[0]?.avg ?? null,
     daily,
     topics,

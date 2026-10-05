@@ -1,3 +1,4 @@
+import FeedbackButtons from "./FeedbackButtons";
 import type { ChatMessage } from "@/types";
 
 export function TypingIndicator() {
@@ -52,6 +53,14 @@ export default function MessageItem({
               </button>
             )}
           </div>
+        )}
+
+        {!isUser && message.dbId && message.rateable && message.content && !pending && !message.error && (
+          <FeedbackButtons
+            messageId={message.dbId}
+            initialRating={message.feedback}
+            initialComment={message.feedbackComment}
+          />
         )}
 
         {!isUser && message.sources && message.sources.length > 0 && (

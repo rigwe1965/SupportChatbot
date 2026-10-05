@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isRateable } from "@/lib/feedback";
 import type { ChatMessage, ConversationSummary, Source } from "@/types";
 
 export async function listConversations(userId: string): Promise<ConversationSummary[]> {
@@ -26,5 +27,9 @@ export async function getConversationMessages(
     role: m.role as ChatMessage["role"],
     content: m.content,
     sources: (m.sources as unknown as Source[] | null) ?? undefined,
+    dbId: m.role === "assistant" ? m.id : undefined,
+    rateable: m.role === "assistant" ? isRateable({ sources: m.sources, lowConfidence: m.lowConfidence }) : undefined,
+    feedback: m.feedback,
+    feedbackComment: m.feedbackComment,
   }));
 }

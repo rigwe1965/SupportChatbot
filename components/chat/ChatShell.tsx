@@ -85,6 +85,8 @@ export default function ChatShell({
             patch((m) => ({ ...m, sources: e.sources }));
           } else if (e.type === "delta") {
             patch((m) => ({ ...m, content: m.content + e.text }));
+          } else if (e.type === "saved") {
+            patch((m) => ({ ...m, dbId: e.messageId, rateable: e.rateable }));
           } else if (e.type === "escalated") {
             setEscalatedTicketId(e.ticketId);
           } else if (e.type === "error") {

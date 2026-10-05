@@ -22,6 +22,8 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
   const s = await getOverviewStats(days);
 
   const resolutionRate = s.totalTickets ? Math.round((s.resolvedTickets / s.totalTickets) * 100) : null;
+  const rated = s.feedback.up + s.feedback.down;
+  const helpfulRate = rated ? Math.round((s.feedback.up / rated) * 100) : null;
   const periodConversations = s.daily.reduce((n, d) => n + d.conversations, 0);
   const periodEscalated = s.daily.reduce((n, d) => n + d.escalated, 0);
   const escalationRate = periodConversations ? Math.round((periodEscalated / periodConversations) * 100) : null;
@@ -46,7 +48,7 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Total conversations" value={s.totalConversations.toLocaleString()} hint="All time" />
         <StatCard label="Open tickets" value={s.openTickets.toLocaleString()} hint={`${s.totalTickets} total`} />
         <StatCard
@@ -58,6 +60,11 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
           label="Avg response time"
           value={s.avgResponseSeconds === null ? "—" : `${s.avgResponseSeconds.toFixed(1)}s`}
           hint={`AI reply, last ${days} days`}
+        />
+        <StatCard
+          label="Helpful answers"
+          value={helpfulRate === null ? "—" : `${helpfulRate}%`}
+          hint={rated ? `${s.feedback.up} 👍 · ${s.feedback.down} 👎, last ${days} days` : `No ratings, last ${days} days`}
         />
       </div>
 

@@ -1,5 +1,7 @@
 export type ApiResponse<T> = { data: T; error?: never } | { data?: never; error: string };
 
+export type FeedbackRating = "UP" | "DOWN";
+
 export type ChatRole = "user" | "assistant" | "system";
 
 export interface ChatMessage {
@@ -7,6 +9,12 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: Source[];
+  /** Database id of a saved assistant message (needed to attach feedback). */
+  dbId?: string;
+  /** Whether the customer can rate this answer (not for hand-off/pause notices). */
+  rateable?: boolean;
+  feedback?: FeedbackRating | null;
+  feedbackComment?: string | null;
   /** Set client-side when a reply failed or was cut off. */
   error?: string;
 }
@@ -32,6 +40,7 @@ export type ChatStreamEvent =
   | { type: "meta"; conversationId: string; sources: Source[] }
   | { type: "delta"; text: string }
   | { type: "escalated"; ticketId: string }
+  | { type: "saved"; messageId: string; rateable: boolean }
   | { type: "done" }
   | { type: "error"; message: string };
 

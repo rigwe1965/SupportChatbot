@@ -11,6 +11,7 @@ import {
   shortId,
   wantsHuman,
 } from "@/lib/escalation";
+import { isRateable } from "@/lib/feedback";
 import { retrieve } from "@/lib/knowledge";
 import { streamChat, type LlmMessage } from "@/lib/openai-chat";
 import { buildSystemPrompt } from "@/lib/prompt";
@@ -130,6 +131,36 @@ export async function POST(req: Request) {
       let answerSources: Source[] = [];
       let answerLowConfidence = false;
 
+      // Saves the reply once and tells the client its id so it can attach feedback to it.
+      // Runs before "done"/"error" is sent; the finally block covers aborted requests.
+      let persisted = false;
+      const persist = async () => {
+        if (persisted || !answer) return;
+        persisted = true;
+        try {
+          const saved = await db.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "assistant",
+              content: answer,
+              sources: answerSources as unknown as Prisma.InputJsonValue,
+              lowConfidence: answerLowConfidence,
+            },
+          });
+          try {
+            send({
+              type: "saved",
+              messageId: saved.id,
+              rateable: isRateable({ sources: answerSources, lowConfidence: answerLowConfidence }),
+            });
+          } catch {
+            // client already disconnected
+          }
+        } catch (e) {
+          console.error("saving reply failed", e);
+        }
+      };
+
       try {
         if (openTicketId) {
           send({ type: "meta", conversationId: conversation.id, sources: [] });
@@ -172,27 +203,17 @@ export async function POST(req: Request) {
             }
           }
         }
+        await persist();
         send({ type: "done" });
       } catch (err) {
         if (!req.signal.aborted) {
           console.error("chat stream failed", err);
+          await persist(); // keep a partial answer
           send({ type: "error", message: "The assistant ran into a problem. Please try again." });
         }
       } finally {
         // Keep whatever was generated, even if the user stopped it early.
-        if (answer) {
-          await db.message
-            .create({
-              data: {
-                conversationId: conversation.id,
-                role: "assistant",
-                content: answer,
-                sources: answerSources as unknown as Prisma.InputJsonValue,
-                lowConfidence: answerLowConfidence,
-              },
-            })
-            .catch((e) => console.error("saving reply failed", e));
-        }
+        await persist();
         await db.conversation
           .update({ where: { id: conversation.id }, data: { updatedAt: new Date() } })
           .catch(() => {});

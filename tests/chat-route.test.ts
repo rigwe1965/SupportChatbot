@@ -90,7 +90,7 @@ beforeEach(() => {
   m.convCreate.mockResolvedValue({ id: "c-new" } as never);
   m.convUpdate.mockResolvedValue({} as never);
   m.msgFind.mockResolvedValue([] as never);
-  m.msgCreate.mockResolvedValue({} as never);
+  m.msgCreate.mockResolvedValue({ id: "m-assistant" } as never);
   m.openTicket.mockResolvedValue(null);
   m.failures.mockResolvedValue(0);
   m.escalate.mockResolvedValue({ id: "tkt_abcdef" } as never);
@@ -238,6 +238,55 @@ describe("answering from the knowledge base", () => {
     expect(textOf(evts)).toBe("Refunds take 5 days [1].");
     expect(savedAssistant()?.lowConfidence).toBe(true);
     expect(m.escalate).not.toHaveBeenCalled(); // first miss only
+  });
+});
+
+describe("saved event (for feedback)", () => {
+  it("announces the stored message id, flagged rateable, before done", async () => {
+    const evts = await events(await post({ message: "How do refunds work?" }));
+    const types = evts.map((e) => e.type);
+
+    expect(evts).toContainEqual({ type: "saved", messageId: "m-assistant", rateable: true });
+    expect(types.indexOf("saved")).toBeLessThan(types.indexOf("done"));
+    expect(types.at(-1)).toBe("done");
+  });
+
+  it("marks the 'could not find it' reply as rateable", async () => {
+    m.retrieve.mockResolvedValue([chunk(0.1)]);
+    const evts = await events(await post({ message: "something unrelated" }));
+    expect(evts).toContainEqual({ type: "saved", messageId: "m-assistant", rateable: true });
+  });
+
+  it("marks hand-off and paused notices as not rateable", async () => {
+    let evts = await events(await post({ message: "talk to a human" }));
+    expect(evts).toContainEqual({ type: "saved", messageId: "m-assistant", rateable: false });
+
+    m.openTicket.mockResolvedValue({ id: "tkt_999999" } as never);
+    evts = await events(await post({ message: "any news?", conversationId: "c1" }));
+    expect(evts).toContainEqual({ type: "saved", messageId: "m-assistant", rateable: false });
+  });
+
+  it("saves a partial answer before reporting the error", async () => {
+    m.streamChat.mockImplementation(async function* () {
+      yield "Partial ";
+      throw new Error("reset");
+    });
+    const evts = await events(await post({ message: "How do refunds work?" }));
+    const types = evts.map((e) => e.type);
+    expect(types.indexOf("saved")).toBeLessThan(types.indexOf("error"));
+  });
+
+  it("stores each reply exactly once", async () => {
+    await (await post({ message: "How do refunds work?" })).text();
+    expect(m.msgCreate.mock.calls.filter((c) => c[0].data.role === "assistant")).toHaveLength(1);
+  });
+
+  it("sends no saved event when there is no reply to store", async () => {
+    m.streamChat.mockImplementation(async function* () {
+      throw new Error("boom");
+    });
+    const evts = await events(await post({ message: "How do refunds work?" }));
+    expect(evts.some((e) => e.type === "saved")).toBe(false);
   });
 });
 
