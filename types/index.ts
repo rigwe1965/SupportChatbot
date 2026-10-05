@@ -31,6 +31,7 @@ export interface ConversationSummary {
 export type ChatStreamEvent =
   | { type: "meta"; conversationId: string; sources: Source[] }
   | { type: "delta"; text: string }
+  | { type: "escalated"; ticketId: string }
   | { type: "done" }
   | { type: "error"; message: string };
 

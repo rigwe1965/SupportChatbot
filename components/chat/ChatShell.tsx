@@ -8,6 +8,7 @@ interface Props {
   initialConversations: ConversationSummary[];
   initialConversationId: string | null;
   initialMessages: ChatMessage[];
+  initialEscalatedTicketId: string | null;
 }
 
 const uid = () => crypto.randomUUID();
@@ -16,10 +17,12 @@ export default function ChatShell({
   initialConversations,
   initialConversationId,
   initialMessages,
+  initialEscalatedTicketId,
 }: Props) {
   const [conversations, setConversations] = useState(initialConversations);
   const [activeId, setActiveId] = useState(initialConversationId);
   const [messages, setMessages] = useState(initialMessages);
+  const [escalatedTicketId, setEscalatedTicketId] = useState(initialEscalatedTicketId);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [loadingConv, setLoadingConv] = useState(false);
@@ -82,6 +85,8 @@ export default function ChatShell({
             patch((m) => ({ ...m, sources: e.sources }));
           } else if (e.type === "delta") {
             patch((m) => ({ ...m, content: m.content + e.text }));
+          } else if (e.type === "escalated") {
+            setEscalatedTicketId(e.ticketId);
           } else if (e.type === "error") {
             patch((m) => ({ ...m, error: e.message }));
           }
@@ -135,7 +140,9 @@ export default function ChatShell({
     const res = await fetch(`/api/conversations/${id}`);
     setLoadingConv(false);
     if (!res.ok) return;
-    setMessages((await res.json()).data);
+    const json = await res.json();
+    setMessages(json.data);
+    setEscalatedTicketId(json.escalated ? "open" : null);
     setActiveId(id);
     window.history.replaceState(null, "", `/chat/${id}`);
   }
@@ -144,6 +151,7 @@ export default function ChatShell({
     if (streaming) return;
     setSidebarOpen(false);
     setMessages([]);
+    setEscalatedTicketId(null);
     setActiveId(null);
     window.history.replaceState(null, "", "/chat");
   }
@@ -248,6 +256,15 @@ export default function ChatShell({
           )}
           <div ref={bottomRef} />
         </div>
+
+        {escalatedTicketId && (
+          <div
+            role="status"
+            className="border-t border-border bg-brand/10 px-4 py-2 text-center text-xs"
+          >
+            A human agent has been notified and will take over this conversation.
+          </div>
+        )}
 
         <form
           onSubmit={(e) => {

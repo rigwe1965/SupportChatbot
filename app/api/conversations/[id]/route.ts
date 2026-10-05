@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getConversationMessages } from "@/lib/conversations";
+import { getOpenTicket } from "@/lib/escalation";
 import { db } from "@/lib/db";
 
 type Ctx = { params: { id: string } };
@@ -11,7 +12,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 
   const messages = await getConversationMessages(params.id, session.user.id);
   if (!messages) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ data: messages });
+  const ticket = await getOpenTicket(params.id);
+  return NextResponse.json({ data: messages, escalated: !!ticket });
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {

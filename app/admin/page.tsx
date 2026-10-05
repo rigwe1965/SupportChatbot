@@ -10,9 +10,14 @@ export default async function AdminPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Admin</h1>
-        <Link href="/admin/articles" className="text-sm text-brand hover:underline">
-          Manage knowledge base →
-        </Link>
+        <div className="flex gap-4 text-sm">
+          <Link href="/admin/tickets" className="text-brand hover:underline">
+            Tickets
+          </Link>
+          <Link href="/admin/articles" className="text-brand hover:underline">
+            Knowledge base →
+          </Link>
+        </div>
       </div>
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-left text-sm">

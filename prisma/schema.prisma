@@ -9,6 +9,17 @@ datasource db {
   extensions = [vector]
 }
 
+enum TicketStatus {
+  OPEN
+  RESOLVED
+}
+
+enum EscalationReason {
+  HUMAN_REQUESTED
+  LOW_CONFIDENCE
+  REPEATED_FAILURES
+}
+
 enum Role {
   FREE
   ADMIN
@@ -26,6 +37,7 @@ model User {
   sessions      Session[]
   conversations Conversation[]
   articles      Article[]
+  tickets       Ticket[]
 }
 
 model Account {
@@ -74,6 +86,7 @@ model Conversation {
   userId    String?
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   messages  Message[]
+  tickets   Ticket[]
 
   @@index([userId])
 }
@@ -83,6 +96,7 @@ model Message {
   role           String
   content        String
   sources        Json?
+  lowConfidence  Boolean      @default(false)
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   conversationId String
@@ -115,4 +129,27 @@ model ArticleChunk {
   embedding Unsupported("vector(1536)")
 
   @@index([articleId])
+}
+
+model Ticket {
+  id             String           @id @default(cuid())
+  status         TicketStatus     @default(OPEN)
+  reason         EscalationReason
+  /// First user message of the conversation.
+  question       String           @db.Text
+  lastAnswer     String?          @db.Text
+  /// Snapshot of the conversation so it survives the user deleting the chat.
+  transcript     Json
+  userId         String?
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName       String?
+  userEmail      String?
+  conversationId String?
+  conversation   Conversation?    @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  slackPostedAt  DateTime?
+  createdAt      DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  @@index([status, createdAt])
+  @@index([conversationId])
 }
