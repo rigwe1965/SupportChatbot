@@ -55,6 +55,7 @@ export async function setFeedback(
       feedback: rating,
       feedbackComment: rating ? comment : null,
       feedbackAt: rating ? new Date() : null,
+      feedbackReviewedAt: null,
     },
   });
   return true;

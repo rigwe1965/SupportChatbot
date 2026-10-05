@@ -83,7 +83,7 @@ describe("setFeedback", () => {
     expect(await setFeedback("m1", "u1", "DOWN", "wrong")).toBe(true);
     expect(updateMessage).toHaveBeenCalledWith({
       where: { id: "m1" },
-      data: { feedback: "DOWN", feedbackComment: "wrong", feedbackAt: expect.any(Date) },
+      data: { feedback: "DOWN", feedbackComment: "wrong", feedbackAt: expect.any(Date), feedbackReviewedAt: null },
     });
   });
 
@@ -91,8 +91,13 @@ describe("setFeedback", () => {
     await setFeedback("m1", "u1", null, "stale comment");
     expect(updateMessage).toHaveBeenCalledWith({
       where: { id: "m1" },
-      data: { feedback: null, feedbackComment: null, feedbackAt: null },
+      data: { feedback: null, feedbackComment: null, feedbackAt: null, feedbackReviewedAt: null },
     });
+  });
+
+  it("puts a changed rating back in the review queue", async () => {
+    await setFeedback("m1", "u1", "DOWN", null);
+    expect(updateMessage.mock.calls[0][0].data.feedbackReviewedAt).toBeNull();
   });
 });
 
@@ -129,7 +134,7 @@ describe("PUT /api/messages/[id]/feedback", () => {
     const res = await put({ rating: null });
     expect(res.status).toBe(200);
     expect(updateMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { feedback: null, feedbackComment: null, feedbackAt: null } }),
+      expect.objectContaining({ data: { feedback: null, feedbackComment: null, feedbackAt: null, feedbackReviewedAt: null } }),
     );
   });
 

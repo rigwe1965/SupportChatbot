@@ -6,12 +6,15 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/admin", label: "Overview", exact: true },
   { href: "/admin/tickets", label: "Tickets" },
+  { href: "/admin/feedback", label: "Feedback" },
   { href: "/admin/articles", label: "Knowledge base" },
   { href: "/admin/users", label: "Users" },
 ];
 
-export default function AdminNav({ openTickets }: { openTickets: number }) {
+export default function AdminNav({ openTickets, unreviewedFeedback }: { openTickets: number; unreviewedFeedback: number }) {
   const pathname = usePathname();
+  const badge = (href: string) =>
+    href === "/admin/tickets" ? openTickets : href === "/admin/feedback" ? unreviewedFeedback : 0;
 
   return (
     <nav aria-label="Admin" className="-mx-4 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0">
@@ -30,9 +33,9 @@ export default function AdminNav({ openTickets }: { openTickets: number }) {
                 }`}
               >
                 {l.label}
-                {l.href === "/admin/tickets" && openTickets > 0 && (
+                {badge(l.href) > 0 && (
                   <span className="rounded-full bg-brand px-1.5 text-xs font-medium text-brand-foreground">
-                    {openTickets}
+                    {badge(l.href)}
                   </span>
                 )}
               </Link>

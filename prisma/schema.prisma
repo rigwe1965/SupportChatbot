@@ -98,20 +98,23 @@ model Conversation {
 }
 
 model Message {
-  id              String       @id @default(cuid())
-  role            String
-  content         String
-  sources         Json?
-  lowConfidence   Boolean      @default(false)
+  id                 String       @id @default(cuid())
+  role               String
+  content            String
+  sources            Json?
+  lowConfidence      Boolean      @default(false)
   /// Customer thumbs up/down on an assistant answer, with an optional reason for a thumbs down.
-  feedback        Feedback?
-  feedbackComment String?      @db.Text
-  feedbackAt      DateTime?
-  createdAt       DateTime     @default(now())
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  conversationId  String
+  feedback           Feedback?
+  feedbackComment    String?      @db.Text
+  feedbackAt         DateTime?
+  /// Set when an admin has looked at a thumbs-down; cleared if the customer changes their rating.
+  feedbackReviewedAt DateTime?
+  createdAt          DateTime     @default(now())
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId     String
 
   @@index([conversationId])
+  @@index([feedback, feedbackAt])
 }
 
 model Article {
