@@ -21,6 +21,9 @@ export interface NegativeFeedbackItem {
 
 export const FEEDBACK_PAGE_SIZE = 100;
 
+export const parseFeedbackStatus = (v: string | null | undefined): FeedbackStatus =>
+  v === "reviewed" || v === "all" ? v : "todo";
+
 interface Row {
   id: string;
   conversationId: string;
@@ -35,7 +38,10 @@ interface Row {
 }
 
 /** Thumbs-down answers, newest first, each with the customer message it answered. */
-export async function listNegativeFeedback(status: FeedbackStatus): Promise<NegativeFeedbackItem[]> {
+export async function listNegativeFeedback(
+  status: FeedbackStatus,
+  limit: number = FEEDBACK_PAGE_SIZE,
+): Promise<NegativeFeedbackItem[]> {
   const statusFilter =
     status === "todo"
       ? Prisma.sql`AND m."feedbackReviewedAt" IS NULL`
@@ -64,7 +70,7 @@ export async function listNegativeFeedback(status: FeedbackStatus): Promise<Nega
     ) q ON true
     WHERE m."role" = 'assistant' AND m."feedback" = 'DOWN' ${statusFilter}
     ORDER BY m."feedbackAt" DESC
-    LIMIT ${FEEDBACK_PAGE_SIZE}`;
+    LIMIT ${limit}`;
 
   return rows.map((r) => ({
     ...r,

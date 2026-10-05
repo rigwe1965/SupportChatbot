@@ -1,7 +1,12 @@
 import Link from "next/link";
 import ReviewFeedbackButton from "@/components/admin/ReviewFeedbackButton";
 import { requireAdminPage } from "@/lib/admin-page";
-import { FEEDBACK_PAGE_SIZE, listNegativeFeedback, type FeedbackStatus } from "@/lib/feedback-review";
+import {
+  FEEDBACK_PAGE_SIZE,
+  listNegativeFeedback,
+  parseFeedbackStatus,
+  type FeedbackStatus,
+} from "@/lib/feedback-review";
 
 const FILTERS: { key: FeedbackStatus; label: string }[] = [
   { key: "todo", label: "To review" },
@@ -11,7 +16,7 @@ const FILTERS: { key: FeedbackStatus; label: string }[] = [
 
 export default async function FeedbackPage({ searchParams }: { searchParams: { status?: string } }) {
   await requireAdminPage("/admin/feedback");
-  const status = FILTERS.find((f) => f.key === searchParams.status)?.key ?? "todo";
+  const status = parseFeedbackStatus(searchParams.status);
   const items = await listNegativeFeedback(status);
 
   return (
@@ -21,19 +26,28 @@ export default async function FeedbackPage({ searchParams }: { searchParams: { s
           <h1 className="text-3xl font-bold tracking-tight">Customer feedback</h1>
           <p className="text-sm text-muted">Answers customers marked as not helpful</p>
         </div>
-        <div className="inline-flex rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Status">
-          {FILTERS.map((f) => (
-            <Link
-              key={f.key}
-              href={`/admin/feedback?status=${f.key}`}
-              aria-current={f.key === status ? "true" : undefined}
-              className={`rounded-md px-3 py-1 ${
-                f.key === status ? "bg-brand text-brand-foreground" : "text-muted hover:text-foreground"
-              }`}
-            >
-              {f.label}
-            </Link>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href={`/api/admin/feedback/export?status=${status}`}
+            download
+            className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm hover:bg-foreground/5"
+          >
+            Export CSV
+          </a>
+          <div className="inline-flex rounded-lg border border-border p-0.5 text-sm" role="group" aria-label="Status">
+            {FILTERS.map((f) => (
+              <Link
+                key={f.key}
+                href={`/admin/feedback?status=${f.key}`}
+                aria-current={f.key === status ? "true" : undefined}
+                className={`rounded-md px-3 py-1 ${
+                  f.key === status ? "bg-brand text-brand-foreground" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {f.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
