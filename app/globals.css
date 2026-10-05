@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 255 255 255;
+  --foreground: 23 23 23;
+  --muted: 115 115 115;
+  --border: 229 229 229;
+  --brand: 79 70 229;
+  --brand-foreground: 255 255 255;
+}
+
+.dark {
+  --background: 10 10 10;
+  --foreground: 237 237 237;
+  --muted: 163 163 163;
+  --border: 38 38 38;
+  --brand: 129 140 248;
+  --brand-foreground: 10 10 10;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
