@@ -71,6 +71,12 @@ export const passwordChangedContent = () =>
     { label: "Reset password", url: `${baseUrl()}/forgot-password` },
   );
 
+export const accountDeletedContent = () =>
+  build("Your account was deleted", "Your account was deleted", [
+    "Your account and your chat history have been permanently deleted.",
+    "If this wasn't you, contact support right away.",
+  ]);
+
 /**
  * Sends an account email. In development with no email provider configured the message is printed
  * to the server console instead, so the flow can be tried locally. Never prints in production.

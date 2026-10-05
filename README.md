@@ -35,7 +35,16 @@ Besides Google/GitHub, people can sign up with an email and password (`/register
   person sets a password via "Forgot password"; and changing a password doesn't sign out existing sessions
   (JWT sessions last until they expire).
 
-### Authentication
+### Deleting an account
+
+Signed-in users can delete their own account at `/account` (typing `DELETE`, plus their password if they have one).
+
+- Their conversations and messages are deleted, along with their sign-in methods, sessions and email links.
+- Support tickets are kept for the team's records, but the name, email, question, answer and transcript are removed.
+- Articles an admin wrote stay without an author. Audit entries stay, including the admin's email in them.
+- The only remaining admin can't delete their account. An admin deleting themselves is recorded in the audit log.
+- `getSession()` checks the user still exists, so a session on another device stops working right away.
+- Google/GitHub-only accounts have no password to re-enter, so they only type `DELETE`.
 
 NextAuth.js v4 with Google and GitHub, Prisma adapter, JWT sessions.
 

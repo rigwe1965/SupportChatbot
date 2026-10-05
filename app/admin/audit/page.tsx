@@ -14,6 +14,7 @@ const ACTION_LABEL: Record<string, string> = {
   "feedback.reopen": "Feedback reopened",
   "feedback.export": "Feedback exported",
   "user.promoted_admin": "Admin promotion",
+  "user.delete_account": "Admin account deleted",
   "audit.purge": "Old entries deleted",
 };
 

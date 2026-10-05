@@ -29,7 +29,9 @@ export default function AuthButton() {
           className="hidden h-8 w-8 rounded-full sm:block"
         />
       )}
-      <span className="hidden text-sm sm:block">{session.user.name ?? session.user.email}</span>
+      <Link href="/account" className="hidden text-sm hover:underline sm:block">
+        {session.user.name ?? session.user.email}
+      </Link>
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/" })}

@@ -80,4 +80,13 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export const getSession = () => getServerSession(authOptions);
+/**
+ * The current session, or null. Sessions are JWTs that outlive the account (e.g. on other devices
+ * after "delete my account"), so this also confirms the user still exists.
+ */
+export async function getSession() {
+  const session = await getServerSession(authOptions);
+  if (!session) return null;
+  const exists = await db.user.findUnique({ where: { id: session.user.id }, select: { id: true } });
+  return exists ? session : null;
+}

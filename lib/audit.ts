@@ -12,6 +12,7 @@ export type AuditAction =
   | "feedback.reopen"
   | "feedback.export"
   | "user.promoted_admin"
+  | "user.delete_account"
   | "audit.purge";
 
 export interface AuditEntry {
