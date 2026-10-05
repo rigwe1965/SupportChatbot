@@ -56,3 +56,58 @@ describe("ADMIN_EMAILS promotion on sign-in", () => {
     expect(db.user.update).not.toHaveBeenCalled();
   });
 });
+
+async function options(adminEmails: string) {
+  vi.resetModules();
+  vi.stubEnv("ADMIN_EMAILS", adminEmails);
+  return (await import("@/lib/auth")).authOptions;
+}
+
+describe("password sign-ups can't claim an admin address", () => {
+  const admin = "boss@example.com";
+  const credentialsAccount = { provider: "credentials", type: "credentials", providerAccountId: "u1" };
+
+  it("is not promoted when the email was never confirmed", async () => {
+    const o = await options(admin);
+    await o.events!.signIn!({
+      user: { id: "u1", email: admin, role: "FREE", emailVerified: null },
+      account: credentialsAccount,
+      isNewUser: false,
+    } as never);
+    expect(db.user.update).not.toHaveBeenCalled();
+    expect(recordAudit).not.toHaveBeenCalled();
+  });
+
+  it("does not get an admin session token either", async () => {
+    const o = await options(admin);
+    const token = await o.callbacks!.jwt!({
+      token: {},
+      user: { id: "u1", email: admin, role: "FREE", emailVerified: null },
+      account: credentialsAccount,
+    } as never);
+    expect(token.role).toBe("FREE");
+  });
+
+  it("is promoted once the email is confirmed", async () => {
+    const o = await options(admin);
+    const user = { id: "u1", email: admin, role: "FREE", emailVerified: new Date() };
+
+    await o.events!.signIn!({ user, account: credentialsAccount, isNewUser: false } as never);
+    expect(db.user.update).toHaveBeenCalledWith({ where: { id: "u1" }, data: { role: "ADMIN" } });
+
+    const token = await o.callbacks!.jwt!({ token: {}, user, account: credentialsAccount } as never);
+    expect(token.role).toBe("ADMIN");
+  });
+
+  it("Google/GitHub sign-ins are still trusted without an emailVerified date", async () => {
+    const o = await options(admin);
+    const user = { id: "u1", email: admin, role: "FREE", emailVerified: null };
+    const token = await o.callbacks!.jwt!({ token: {}, user, account: { provider: "google", type: "oauth" } } as never);
+    expect(token.role).toBe("ADMIN");
+  });
+
+  it("registers the email+password provider", async () => {
+    const o = await options(admin);
+    expect(o.providers.map((p) => p.id)).toEqual(["google", "github", "credentials"]);
+  });
+});

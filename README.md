@@ -19,6 +19,22 @@ npx prisma migrate deploy
 npm run dev
 ```
 
+### Email + password accounts
+
+Besides Google/GitHub, people can sign up with an email and password (`/register`, `/signin`).
+
+- Sign-up emails a confirmation link; the account can't sign in until it's confirmed. This also stops anyone
+  from claiming an `ADMIN_EMAILS` address by signing up with it.
+- `/forgot-password` emails a one-hour, single-use reset link (`/reset-password`). It also works for
+  Google/GitHub accounts, which is how they add a password.
+- Passwords are hashed with scrypt; reset/confirmation tokens are stored only as SHA-256 hashes.
+- Sign-up, reset and sign-in attempts are rate limited, and responses don't reveal whether an email has an account.
+- Emails are sent through Resend (`RESEND_API_KEY`). In development without a key, the email (and its link) is
+  printed in the server console instead.
+- Known limits: signing in with a password and with Google/GitHub for the same address are separate until the
+  person sets a password via "Forgot password"; and changing a password doesn't sign out existing sessions
+  (JWT sessions last until they expire).
+
 ### Authentication
 
 NextAuth.js v4 with Google and GitHub, Prisma adapter, JWT sessions.

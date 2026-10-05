@@ -26,6 +26,11 @@ enum Feedback {
   DOWN
 }
 
+enum AuthTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 enum Role {
   FREE
   ADMIN
@@ -45,6 +50,9 @@ model User {
   articles      Article[]
   tickets       Ticket[]
   auditLogs     AuditLog[]
+  /// scrypt hash; null for accounts that only use Google/GitHub
+  passwordHash  String?
+  authTokens    AuthToken[]
 }
 
 model Account {
@@ -198,4 +206,18 @@ model AuditLog {
   @@index([createdAt])
   @@index([action, createdAt])
   @@index([actorId])
+}
+
+/// One-time email links (verify address, reset password). Only a SHA-256 of the token is stored.
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      AuthTokenType
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
 }

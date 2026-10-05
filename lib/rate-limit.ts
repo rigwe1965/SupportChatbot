@@ -90,9 +90,9 @@ export function rateLimitHeaders(r: RateLimitResult): Record<string, string> {
   };
 }
 
-export function rateLimitResponse(r: RateLimitResult) {
+export function rateLimitResponse(r: RateLimitResult, what = "messages") {
   return NextResponse.json(
-    { error: `You're sending messages too quickly. Please try again in ${r.resetSeconds}s.` },
+    { error: `You're sending ${what} too quickly. Please try again in ${r.resetSeconds}s.` },
     { status: 429, headers: { ...rateLimitHeaders(r), "Retry-After": String(r.resetSeconds) } },
   );
 }

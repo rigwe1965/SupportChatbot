@@ -2,14 +2,27 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { recordAudit } from "@/lib/audit";
+import { authorizeCredentials } from "@/lib/credentials";
 import { db } from "@/lib/db";
+import { ipFromHeaders } from "@/lib/ip";
 
 const adminEmails = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
+
+/**
+ * Whether this sign-in should get the admin role. Google/GitHub vouch for the email themselves; for
+ * password accounts the address must have been confirmed, otherwise anyone could sign up as an
+ * ADMIN_EMAILS address and be promoted.
+ */
+function isAdminSignIn(user: { email?: string | null; emailVerified?: Date | null }, provider?: string) {
+  if (!user.email || !adminEmails.includes(user.email.toLowerCase())) return false;
+  return provider !== "credentials" || !!user.emailVerified;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
@@ -25,16 +38,20 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GITHUB_ID ?? "",
       clientSecret: process.env.GITHUB_SECRET ?? "",
     }),
+    CredentialsProvider({
+      name: "Email and password",
+      credentials: { email: { type: "email" }, password: { type: "password" } },
+      authorize: (credentials, req) => authorizeCredentials(credentials, ipFromHeaders(req?.headers)),
+    }),
   ],
   pages: { signIn: "/signin" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         // The adapter returns the freshly created user as FREE; apply the admin list here
         // so the very first sign-in already carries the right role.
-        token.role =
-          user.email && adminEmails.includes(user.email.toLowerCase()) ? "ADMIN" : user.role;
+        token.role = isAdminSignIn(user, account?.provider) ? "ADMIN" : user.role;
       }
       return token;
     },
@@ -46,8 +63,8 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     // Persist the promotion for configured admin emails.
-    async signIn({ user }) {
-      if (user.email && adminEmails.includes(user.email.toLowerCase()) && user.role !== "ADMIN") {
+    async signIn({ user, account }) {
+      if (isAdminSignIn(user, account?.provider) && user.role !== "ADMIN") {
         await db.user.update({ where: { id: user.id }, data: { role: "ADMIN" } });
         await recordAudit(
           { userId: user.id, email: user.email },
